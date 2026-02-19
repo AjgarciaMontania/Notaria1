@@ -22,7 +22,7 @@ const FEE_CONSTANTS = {
   ADDITIONAL_RATE: 1.02,
 };
 
-const HONORARIOS_RATES = { FIRST: 30000, SECOND_TO_THIRD: 20000, REMAINING: 15000 };
+const HONORARIOS_RATES = { FIRST: 35000, SECOND_TO_THIRD: 25000, REMAINING: 20000 };
 
 const ResultTable = forwardRef(({ rows, setRows, calcularDisabled }, ref) => {
   useImperativeHandle(ref, () => ({ calcularTodo, exportToExcel }));
