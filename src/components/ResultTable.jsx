@@ -4,11 +4,8 @@ import { formatCOP, formatNumberWithPoints, parseNumberWithoutPoints } from "../
 import { forwardRef, useImperativeHandle } from "react";
 import { ACTOS_CONFIG } from "../utils/actosConfig";
 
-const CertificadoTradicion = 24300;
-const ReproduccionDoc = 17000;
-
-const SIN_CUANTIA_BASE = 29500;      // Art. 1 literal a) - primer folio
-const FOLIO_ADICIONAL = 15300;       // Art. 1 literal c) - cada folio adicional
+const SIN_CUANTIA_BASE = 29500;
+const FOLIO_ADICIONAL = 15300;
 
 const FEE_CONSTANTS = {
   BASE_FEE: 53100,
@@ -51,42 +48,44 @@ const ResultTable = forwardRef(({ rows, setRows, calcularDisabled }, ref) => {
       const valor = parseNumberWithoutPoints(row.valorActo || "0");
       const foliosAdic = row.foliosAdicionales || 0;
 
+      // SABER ahora cuenta honorarios
+      const isSaber = row.acto.includes("SABER") || row.acto.includes("ESCRITURA PARA SABER");
+      const isHonorarioContable = config.honorarioContable || isSaber;
+
+      if (isHonorarioContable) {
+        contHonorarios++;
+        honorarios += contHonorarios === 1 ? HONORARIOS_RATES.FIRST :
+                      contHonorarios <= 3 ? HONORARIOS_RATES.SECOND_TO_THIRD :
+                      HONORARIOS_RATES.REMAINING;
+      }
+
       if (config.oripTipo === "none") {
         if (row.acto.includes("IGAC")) igacTotal += valor;
-        if (row.acto.includes("SABER")) saberTotal += valor;
+        if (isSaber) saberTotal += valor;
         return { ...row, tributaria: null, orip: null, total: valor };
       }
 
       let tributaria = 0;
       let orip = 0;
 
-      // TRIBUTARIA
       if (config.tributariaRate !== undefined) {
         tributaria = Math.round(valor * config.tributariaRate);
       } else if (config.tributaria !== undefined) {
         tributaria = config.tributaria;
       }
 
-      // ORIP + FOLIOS ADICIONALES (¡AHORA EN TODOS LOS ACTOS!)
       if (config.oripTipo === "cuantia") {
         orip = calculateNotaryFee(valor) + (config.oripExtras || 0);
       } else if (config.oripTipo === "sin_cuantia") {
-        orip = SIN_CUANTIA_BASE;   // primer folio
+        orip = SIN_CUANTIA_BASE;
       }
-      // ← AQUÍ SE AÑADEN LOS FOLIOS ADICIONALES A CUALQUIER ACTO
+
       orip += FOLIO_ADICIONAL * foliosAdic;
-      orip = Math.round(orip / 100) * 100;   // redondeo oficial a centena
+      orip = Math.round(orip / 100) * 100;
 
       const totalRow = tributaria + orip;
       tributariaTotal += tributaria;
       oripTotal += orip;
-
-      if (config.honorarioContable) {
-        contHonorarios++;
-        honorarios += contHonorarios === 1 ? HONORARIOS_RATES.FIRST :
-                      contHonorarios <= 3 ? HONORARIOS_RATES.SECOND_TO_THIRD :
-                      HONORARIOS_RATES.REMAINING;
-      }
 
       return { ...row, tributaria, orip, total: totalRow };
     });
@@ -107,7 +106,6 @@ const ResultTable = forwardRef(({ rows, setRows, calcularDisabled }, ref) => {
       { isAdditional: true, label: "TOTAL GASTOS", value: totalConsignar },
       { isAdditional: true, label: "DINERO ENVIADO", value: dineroEnviadoNum },
       { isAdditional: true, label: "SOBRANTE", value: sobrante },
-  
     ]);
   };
 
